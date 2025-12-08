@@ -1,33 +1,35 @@
 package Auth.Auth.Security;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-
-import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import org.springframework.stereotype.Component;
 
+@Component
 public class JwtUtil {
 
-    private static final String SECRET_STRING = "UnaClaveSecretaMuyLargaParaHS256QueDebeTenerAlMenos32Caracteres";
-    
-    // 2. Genera la Key a partir de la cadena secreta constante.
-    private static final Key key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
+    private static final String SECRET_KEY = "MI_CLAVE_SECRETA_DE_32_CARACTERES_MINIMO_____123";
+    private static final long EXPIRATION_MS = 1000 * 60 * 60 * 24; // 24h
 
-    public static String generateToken(String username) {
-        Map<String,Object> claims = new HashMap<>();
-        // Calcula la expiración: 24h
-        long expirationTime = System.currentTimeMillis() + 1000L * 60 * 60 * 24; 
-        
+    public String generateToken(String email, Long userId, List<String> roles) {
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(expirationTime))
-                // Usa la clave constante para firmar
-                .signWith(key, SignatureAlgorithm.HS256) 
+                .claim("email", email)
+                .claim("userId", userId)
+                .claim("roles", roles)
+                .subject(email)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), Jwts.SIG.HS256)
                 .compact();
+    }
+
+    public String getEmailFromToken(String token) {
+        return (String) Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("email");
     }
 }

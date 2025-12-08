@@ -6,8 +6,6 @@ import java.util.Map;
 
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -17,53 +15,85 @@ import Auth.Auth.Security.JwtUtil;
 @RequestMapping("/auth")
 @CrossOrigin("*")
 public class AuthController {
+
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String userServiceUrl = System.getenv().getOrDefault("USER_SERVICE_URL","http://localhost:8082");
+
+    private final String userServiceUrl =
+            System.getenv().getOrDefault("USER_SERVICE_URL","http://localhost:8081");
+
+    private final JwtUtil jwtUtil;
+
+    public AuthController(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String,String> body) {
-        String username = body.get("username");
+
+        String email = body.get("email");
         String password = body.get("password");
-        if(username==null || password==null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","username and password required"));
+
+        if(email == null || password == null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error","Email y contraseña requeridos."));
         }
+
         try {
-            String url = userServiceUrl + "/api/usuarios/email/" + username;
+            String url = userServiceUrl + "/api/usuarios/email/" + email;
+
             UsuarioDto user = restTemplate.getForObject(url, UsuarioDto.class);
-            if(user==null){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","invalid credentials"));
+
+            if(user == null){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error","Credenciales inválidas"));
             }
+
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
             if(!encoder.matches(password, user.getPassword())){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","invalid credentials"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error","Credenciales inválidas"));
             }
-            String token = JwtUtil.generateToken(user.getEmail());
+
+            String token = jwtUtil.generateToken(
+                    user.getEmail(),
+                    user.getId(),
+                    java.util.List.of(user.getRol())
+            );
+
             return ResponseEntity.ok(Map.of("token", token));
+
         } catch(Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "authentication service error", "details", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "Error en autenticación",
+                            "details", e.getMessage()
+                    ));
         }
     }
 
-    // simple DTO to map response from User service
     public static class UsuarioDto {
         private Long id;
-        private String name;
+        private String nombre;
         private String email;
         private String password;
-        private String role;
+        private String rol;
 
         public UsuarioDto(){}
 
-        // getters and setters
         public Long getId(){return id;}
         public void setId(Long id){this.id=id;}
-        public String getName(){return name;}
-        public void setName(String name){this.name=name;}
+
+        public String getNombre(){return nombre;}
+        public void setNombre(String nombre){this.nombre=nombre;}
+
         public String getEmail(){return email;}
         public void setEmail(String email){this.email=email;}
+
         public String getPassword(){return password;}
         public void setPassword(String password){this.password=password;}
-        public String getRole(){return role;}
-        public void setRole(String role){this.role=role;}
+
+        public String getRol(){return rol;}
+        public void setRol(String rol){this.rol=rol;}
     }
 }
