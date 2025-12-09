@@ -20,19 +20,19 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // API REST → sin CSRF
+            // API REST -> sin CSRF
             .csrf(AbstractHttpConfigurer::disable)
 
-            // Stateless, no sesiones
+            // Sin sesión de servidor
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
             .authorizeHttpRequests(auth -> auth
-                // ✅ TODO lo de /auth/** es público
-                .requestMatchers("/auth/**").permitAll()
+                // ✅ Raíz y todo lo de /auth/** público
+                .requestMatchers("/", "/auth/**").permitAll()
 
-                // ✅ Swagger y health públicos (por si los usas)
+                // ✅ Swagger / health por si los usas
                 .requestMatchers(
                     "/swagger-ui.html",
                     "/swagger-ui/**",
@@ -40,11 +40,11 @@ public class SecurityConfig {
                     "/actuator/health"
                 ).permitAll()
 
-                // 🔒 Cualquier otra cosa en este microservicio queda bloqueada
+                // 🔒 Cualquier otra cosa queda bloqueada
                 .anyRequest().denyAll()
             )
 
-            // Desactivamos por completo login por formulario y basic auth
+            // Desactivamos login por formulario y basic auth
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
 
