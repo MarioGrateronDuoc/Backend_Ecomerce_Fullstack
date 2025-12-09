@@ -24,18 +24,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    // 🔴 Rutas que NO deben pasar por el filtro JWT (públicas)
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        String method = request.getMethod();
+
+        // Swagger, health, ping, etc. quedan libres
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/actuator/health")
+                || path.startsWith("/public")) {
+            return true;
+        }
+
+        // Registro de usuario: solo el POST es público
+        if (path.equals("/api/usuarios") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+
+        // Búsqueda por email (la usa el microservicio Auth para hacer login)
+        if (path.startsWith("/api/usuarios/email")) {
+            return true;
+        }
+
+        return false; // el resto SÍ pasa por el filtro (requiere JWT)
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Obtener header Authorization
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        // 👇 Si no hay token, NO devolvemos 403 aquí, solo seguimos.
+        if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
+        String token = header.substring(7);
+
+        try {
             // Validar token
             if (jwtUtil.validateToken(token)) {
                 Claims claims = jwtUtil.getClaims(token);
@@ -44,17 +76,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 List<String> roles = claims.get("roles", List.class);
                 String userId = claims.get("userId", String.class);
 
-                // Convertir roles a SimpleGrantedAuthority
                 List<SimpleGrantedAuthority> authorities =
                         roles.stream()
-                             .map(SimpleGrantedAuthority::new)
-                             .collect(Collectors.toList());
+                                .map(SimpleGrantedAuthority::new)
+                                .collect(Collectors.toList());
 
-                // Crear un principal personalizado
                 AuthenticatedUserPrincipal principal =
                         new AuthenticatedUserPrincipal(username, userId, roles);
 
-                // Crear token de autenticación
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 principal,
@@ -62,12 +91,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 authorities
                         );
 
-                // Guardarlo en el contexto
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        }
 
-        // Continuar con la cadena de filtros
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            // Token inválido → 401 (no 403)
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
     }
 }
