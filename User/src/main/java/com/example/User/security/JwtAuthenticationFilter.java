@@ -30,24 +30,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // Logs sencillos para depurar (si quieres los puedes dejar)
+        // Log opcional para ver qué ruta está entrando
         System.out.println("shouldNotFilter? path=" + path + " method=" + method);
 
-        // Swagger, health, ping, etc.
-        if (path.startsWith("/public")
-                || path.startsWith("/swagger-ui")
+        // Swagger, health
+        if (path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/actuator/health")) {
             return true;
         }
 
-        // Registro de usuario → solo POST
+        // Registro de usuario → solo POST es público
         if (path.equals("/api/usuarios") && "POST".equalsIgnoreCase(method)) {
             return true;
         }
 
-        // Búsqueda por email para Auth
+        // Búsqueda por email (usada por Auth)
         if (path.startsWith("/api/usuarios/email")) {
+            return true;
+        }
+
+        // ⚡ TU ENDPOINT DE PRUEBA PUBLICO
+        // Permitir /api/usuarios/public/**
+        if (path.startsWith("/api/usuarios/public")) {
             return true;
         }
 
@@ -62,7 +67,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // Si no hay token → dejar seguir, que decida SecurityConfig
+        // Si no hay token → dejar seguir; SecurityConfig decide si permite o no
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -80,8 +85,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 List<SimpleGrantedAuthority> authorities =
                         roles.stream()
-                             .map(SimpleGrantedAuthority::new)
-                             .collect(Collectors.toList());
+                                .map(SimpleGrantedAuthority::new)
+                                .collect(Collectors.toList());
 
                 AuthenticatedUserPrincipal principal =
                         new AuthenticatedUserPrincipal(username, userId, roles);
@@ -99,7 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Token inválido → 401
+            // Token inválido → devolver 401 automáticamente
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }

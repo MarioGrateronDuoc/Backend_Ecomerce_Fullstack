@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -32,20 +33,22 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
+                // ✅ RUTAS PÚBLICAS (usando AntPathRequestMatcher explícito)
                 .requestMatchers(
-                        "/swagger-ui.html",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/actuator/health",
-                        "/public/**",               // healthcheck para probar Railway
-                        "/api/usuarios",            // POST registro (el GET ya lo limita @PreAuthorize)
-                        "/api/usuarios/email/**"    // para que Auth pueda buscar por email al hacer login
+                        new AntPathRequestMatcher("/public/**"),
+                        new AntPathRequestMatcher("/swagger-ui.html"),
+                        new AntPathRequestMatcher("/swagger-ui/**"),
+                        new AntPathRequestMatcher("/v3/api-docs/**"),
+                        new AntPathRequestMatcher("/actuator/health"),
+                        new AntPathRequestMatcher("/api/usuarios"),
+                        new AntPathRequestMatcher("/api/usuarios/public/**"),
+                        new AntPathRequestMatcher("/api/usuarios/email/**")
                 ).permitAll()
 
-                // 🔐 Rutas exclusivas de admin (si agregas algo tipo /api/admin/...)
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // 🔐 Rutas de admin
+                .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasRole("ADMIN")
 
-                // 🔐 TODO lo demás requiere JWT
+                // 🔐 Todo lo demás requiere JWT
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

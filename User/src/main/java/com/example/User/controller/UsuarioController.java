@@ -82,7 +82,7 @@ public class UsuarioController {
         return false;
     }
 
-    @GetMapping("/ping")
+    @GetMapping("/public/ping")
     public String pingUser() {
         return "User microservice OK";
     }
