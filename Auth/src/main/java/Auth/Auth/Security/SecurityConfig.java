@@ -25,16 +25,18 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                // ✅ Rutas públicas
-                .requestMatchers("/", "/error", "/auth/**").permitAll()
+                // Rutas públicas
                 .requestMatchers(
+                    "/",
+                    "/error",
+                    "/auth/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/actuator/health"
                 ).permitAll()
 
-                // 🔒 Todo lo demás denegado (por si acaso)
+                // Todo lo demás denegado
                 .anyRequest().denyAll()
             )
             .formLogin(AbstractHttpConfigurer::disable)

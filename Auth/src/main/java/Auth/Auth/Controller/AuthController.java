@@ -96,4 +96,9 @@ public class AuthController {
         public String getRol(){return rol;}
         public void setRol(String rol){this.rol=rol;}
     }
+
+    @GetMapping("/public/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("Auth microservice OK");
+    }
 }
