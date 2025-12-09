@@ -2,44 +2,42 @@ package Auth.Auth.Security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@EnableMethodSecurity
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+            // Es una API REST → desactivamos CSRF
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // ✅ Endpoints públicos de Auth
-                .requestMatchers("/auth/login").permitAll()
-                // (opcional) si algún día haces /auth/register
-                .requestMatchers("/auth/register").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
-                // 🔐 Todo lo demás requiere estar autenticado (pero como no tenemos nada más, está bien)
-                .anyRequest().authenticated()
+            // No queremos sesión de servidor, usamos JWT en otros microservicios
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            // ❌ Desactivamos completamente el login por formulario y basic auth
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable());
+            .authorizeHttpRequests(auth -> auth
+                // 🔓 RUTAS PÚBLICAS EN AUTH
+                .requestMatchers(
+                    "/auth/login",          // login que genera el token
+                    "/actuator/health",    // para que Railway vea que está vivo
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
+                ).permitAll()
 
+                // 🔒 Cualquier otra cosa en Auth por ahora se bloquea
+                .anyRequest().denyAll()
+            );
+
+        // No configuramos formLogin ni httpBasic porque Auth responde con JSON
         return http.build();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 }
