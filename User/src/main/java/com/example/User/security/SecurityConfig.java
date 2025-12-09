@@ -32,20 +32,21 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
-                // Rutas públicas generales (Swagger, registro y login)
+                // ✅ RUTAS PÚBLICAS
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
-                        "/api/usuarios",          // Registro público
-                        "/api/usuarios/login",    // Login
-                        "/auth/**"                // Si Auth llama al microservicio User
+                        "/actuator/health",
+                        "/public/**",               // ping de prueba
+                        "/api/usuarios",            // POST de registro (el GET igual se controla con @PreAuthorize)
+                        "/api/usuarios/email/**"    // para que Auth pueda buscar por email
                 ).permitAll()
 
-                // Rutas para administradores
+                // 🔐 Rutas para administradores (si tuvieras más cosas de admin)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // Todo lo demás necesita token
+                // 🔐 Todo lo demás necesita JWT
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

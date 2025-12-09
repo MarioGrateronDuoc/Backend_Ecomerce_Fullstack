@@ -49,7 +49,6 @@ public class UsuarioController {
 
     @GetMapping("/email/{email}") //obtener email solo admin
     @Operation(summary = "Obtener usuario por email")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Usuario> buscarPorEmail(@PathVariable String email) {
         return ResponseEntity.ok(usuarioService.buscarPorEmail(email));
     }
@@ -81,5 +80,10 @@ public class UsuarioController {
         }
 
         return false;
+    }
+
+    @GetMapping("/ping")
+    public String pingUser() {
+        return "User microservice OK";
     }
 }
