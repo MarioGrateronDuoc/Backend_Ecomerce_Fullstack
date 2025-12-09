@@ -24,31 +24,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
-    // 🔴 Rutas que NO deben pasar por el filtro JWT (públicas)
+    // 🔴 Rutas que NO queremos filtrar con JWT
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // Swagger, health, ping, etc. quedan libres
-        if (path.startsWith("/swagger-ui")
+        // Logs sencillos para depurar (si quieres los puedes dejar)
+        System.out.println("shouldNotFilter? path=" + path + " method=" + method);
+
+        // Swagger, health, ping, etc.
+        if (path.startsWith("/public")
+                || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
-                || path.startsWith("/actuator/health")
-                || path.startsWith("/public")) {
+                || path.startsWith("/actuator/health")) {
             return true;
         }
 
-        // Registro de usuario: solo el POST es público
+        // Registro de usuario → solo POST
         if (path.equals("/api/usuarios") && "POST".equalsIgnoreCase(method)) {
             return true;
         }
 
-        // Búsqueda por email (la usa el microservicio Auth para hacer login)
+        // Búsqueda por email para Auth
         if (path.startsWith("/api/usuarios/email")) {
             return true;
         }
 
-        return false; // el resto SÍ pasa por el filtro (requiere JWT)
+        return false; // el resto SÍ pasa por el filtro
     }
 
     @Override
@@ -59,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // 👇 Si no hay token, NO devolvemos 403 aquí, solo seguimos.
+        // Si no hay token → dejar seguir, que decida SecurityConfig
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -68,7 +71,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = header.substring(7);
 
         try {
-            // Validar token
             if (jwtUtil.validateToken(token)) {
                 Claims claims = jwtUtil.getClaims(token);
 
@@ -78,8 +80,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 List<SimpleGrantedAuthority> authorities =
                         roles.stream()
-                                .map(SimpleGrantedAuthority::new)
-                                .collect(Collectors.toList());
+                             .map(SimpleGrantedAuthority::new)
+                             .collect(Collectors.toList());
 
                 AuthenticatedUserPrincipal principal =
                         new AuthenticatedUserPrincipal(username, userId, roles);
@@ -97,7 +99,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Token inválido → 401 (no 403)
+            // Token inválido → 401
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
