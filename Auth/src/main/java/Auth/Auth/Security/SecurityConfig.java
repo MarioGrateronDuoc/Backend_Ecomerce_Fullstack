@@ -20,19 +20,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // API REST -> sin CSRF
             .csrf(AbstractHttpConfigurer::disable)
-
-            // Sin sesión de servidor
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-
             .authorizeHttpRequests(auth -> auth
-                // ✅ Raíz y todo lo de /auth/** público
-                .requestMatchers("/", "/auth/**").permitAll()
-
-                // ✅ Swagger / health por si los usas
+                // ✅ Rutas públicas
+                .requestMatchers("/", "/error", "/auth/**").permitAll()
                 .requestMatchers(
                     "/swagger-ui.html",
                     "/swagger-ui/**",
@@ -40,11 +34,9 @@ public class SecurityConfig {
                     "/actuator/health"
                 ).permitAll()
 
-                // 🔒 Cualquier otra cosa queda bloqueada
+                // 🔒 Todo lo demás denegado (por si acaso)
                 .anyRequest().denyAll()
             )
-
-            // Desactivamos login por formulario y basic auth
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
 
