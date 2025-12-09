@@ -9,7 +9,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -33,22 +32,18 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
-                // ✅ RUTAS PÚBLICAS (usando AntPathRequestMatcher explícito)
+                // ✅ RUTAS PÚBLICAS
                 .requestMatchers(
-                        new AntPathRequestMatcher("/public/**"),
-                        new AntPathRequestMatcher("/swagger-ui.html"),
-                        new AntPathRequestMatcher("/swagger-ui/**"),
-                        new AntPathRequestMatcher("/v3/api-docs/**"),
-                        new AntPathRequestMatcher("/actuator/health"),
-                        new AntPathRequestMatcher("/api/usuarios"),
-                        new AntPathRequestMatcher("/api/usuarios/public/**"),
-                        new AntPathRequestMatcher("/api/usuarios/email/**")
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/actuator/health",
+                        "/api/usuarios",              // POST registro
+                        "/api/usuarios/email/**",     // la que usa Auth
+                        "/api/usuarios/public/**"     // tests
                 ).permitAll()
 
-                // 🔐 Rutas de admin
-                .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasRole("ADMIN")
-
-                // 🔐 Todo lo demás requiere JWT
+                // 🔐 TODO LO DEMÁS REQUIERE JWT
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
