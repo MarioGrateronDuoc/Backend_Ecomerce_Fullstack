@@ -32,21 +32,20 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
-                // ✅ RUTAS PÚBLICAS
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/actuator/health",
-                        "/public/**",               // ping de prueba
-                        "/api/usuarios",            // POST de registro (el GET igual se controla con @PreAuthorize)
-                        "/api/usuarios/email/**"    // para que Auth pueda buscar por email
+                        "/public/**",               // healthcheck para probar Railway
+                        "/api/usuarios",            // POST registro (el GET ya lo limita @PreAuthorize)
+                        "/api/usuarios/email/**"    // para que Auth pueda buscar por email al hacer login
                 ).permitAll()
 
-                // 🔐 Rutas para administradores (si tuvieras más cosas de admin)
+                // 🔐 Rutas exclusivas de admin (si agregas algo tipo /api/admin/...)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // 🔐 Todo lo demás necesita JWT
+                // 🔐 TODO lo demás requiere JWT
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
