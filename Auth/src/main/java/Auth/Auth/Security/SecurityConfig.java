@@ -25,21 +25,20 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                // RUTAS PÚBLICAS DE AUTH (CORRECTAS)
+                // ⭐ RUTAS PÚBLICAS (sin token)
                 .requestMatchers(
-                    "/api/auth/login",
-                    "/api/auth/register",
+                    "/auth/**",          // login, etc.
+                    "/api/auth/**",      // por si algún día expones /api/auth
                     "/swagger-ui.html",
                     "/swagger-ui/**",
+                    "/public/**",
                     "/v3/api-docs/**",
                     "/actuator/health"
                 ).permitAll()
 
-                // Cualquier otra ruta → prohibida
+                // Todo lo demás, bloqueado (o puedes usar .authenticated() si luego agregas filtros JWT)
                 .anyRequest().denyAll()
-            )
-            .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable);
+            );
 
         return http.build();
     }
