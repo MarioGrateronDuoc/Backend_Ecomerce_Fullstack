@@ -24,8 +24,17 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        // Reglas de autorización
         http.authorizeHttpRequests(auth -> auth
+
+                // --- PERMITIR SWAGGER ---
+                .requestMatchers(
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/v3/api-docs.yaml",
+                        "/swagger-resources/**",
+                        "/webjars/**"
+                ).permitAll()
 
                 // --- RUTAS PÚBLICAS (GET) ---
                 .requestMatchers("GET", "/api/productos/**").permitAll()
@@ -35,7 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("PUT", "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers("DELETE", "/api/productos/**").hasRole("ADMIN")
 
-                // Cualquier otra ruta requiere estar autenticado
+                // Cualquier otra ruta requiere autenticación
                 .anyRequest().authenticated()
         );
 
