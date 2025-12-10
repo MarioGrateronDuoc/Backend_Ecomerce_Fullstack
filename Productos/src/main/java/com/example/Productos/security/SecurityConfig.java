@@ -3,6 +3,7 @@ package com.example.Productos.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // <-- IMPORTANTE
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,7 +20,6 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable());
 
-        // No guardar sesiones → REST puro
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
@@ -36,19 +36,17 @@ public class SecurityConfig {
                         "/webjars/**"
                 ).permitAll()
 
-                // --- RUTAS PÚBLICAS (GET) ---
-                .requestMatchers("GET", "/api/productos/**").permitAll()
+                // --- RUTAS PÚBLICAS ---
+                .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
 
-                // --- RUTAS SOLO ADMIN (CRUD) ---
-                .requestMatchers("POST", "/api/productos/**").hasRole("ADMIN")
-                .requestMatchers("PUT", "/api/productos/**").hasRole("ADMIN")
-                .requestMatchers("DELETE", "/api/productos/**").hasRole("ADMIN")
+                // --- CRUD SOLO ADMIN ---
+                .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
 
-                // Cualquier otra ruta requiere autenticación
                 .anyRequest().authenticated()
         );
 
-        // Insertar el filtro JWT antes del filtro por defecto de Spring
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
