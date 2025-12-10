@@ -25,18 +25,22 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                // ⭐ RUTAS PÚBLICAS (sin token)
+                // ⭐ ENDPOINTS PÚBLICOS REALES
                 .requestMatchers(
-                    "/auth/**",          // login, etc.
-                    "/api/auth/**",      // por si algún día expones /api/auth
+                    "/auth/**",          // login, ping, etc
+                    "/api/auth/**",      // por si Railway usa prefix /api
+                    "/auth/public/**"
+                ).permitAll()
+
+                // ⭐ SWAGGER
+                .requestMatchers(
                     "/swagger-ui.html",
                     "/swagger-ui/**",
-                    "/public/**",
                     "/v3/api-docs/**",
                     "/actuator/health"
                 ).permitAll()
 
-                // Todo lo demás, bloqueado (o puedes usar .authenticated() si luego agregas filtros JWT)
+                // Todo lo demás bloqueado
                 .anyRequest().denyAll()
             );
 
