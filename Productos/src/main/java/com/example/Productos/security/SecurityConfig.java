@@ -1,5 +1,8 @@
 package com.example.Productos.security;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +16,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        logger.info("🔧 SecurityConfig cargado: Configurando reglas de autorización…");
 
         http.csrf(csrf -> csrf.disable());
 
@@ -26,7 +33,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // SWAGGER
+                // --- SWAGGER ---
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
@@ -36,10 +43,10 @@ public class SecurityConfig {
                         "/webjars/**"
                 ).permitAll()
 
-                // PÚBLICOS
+                // --- PÚBLICOS ---
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
 
-                // SOLO ADMIN (usa hasRole correctamente)
+                // --- SOLO ADMIN ---
                 .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
@@ -48,6 +55,8 @@ public class SecurityConfig {
         );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        logger.info("✔️ SecurityFilterChain creado correctamente");
 
         return http.build();
     }
