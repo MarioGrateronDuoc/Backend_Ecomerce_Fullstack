@@ -26,7 +26,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // --- SWAGGER ---
+                // SWAGGER
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
@@ -36,13 +36,13 @@ public class SecurityConfig {
                         "/webjars/**"
                 ).permitAll()
 
-                // --- PÚBLICOS ---
+                // PÚBLICOS
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
 
-                // --- SOLO ADMIN ---
-                .requestMatchers(HttpMethod.POST, "/api/productos/**").hasAuthority("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasAuthority("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasAuthority("ADMIN")
+                // SOLO ADMIN (usa hasRole correctamente)
+                .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
 
                 .anyRequest().authenticated()
         );
