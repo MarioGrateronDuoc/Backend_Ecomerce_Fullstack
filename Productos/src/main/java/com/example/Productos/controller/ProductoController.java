@@ -1,70 +1,89 @@
 package com.example.Productos.controller;
 
-import org.springframework.web.bind.annotation.*;
 import com.example.Productos.model.Producto;
 import com.example.Productos.service.ProductoService;
-
-import java.util.List;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/productos")
 @CrossOrigin("*")
+@RequiredArgsConstructor
 @Tag(name = "Productos", description = "Operaciones CRUD para la gestión de productos")
 public class ProductoController {
 
     private final ProductoService productoService;
 
-    public ProductoController(ProductoService productoService) {
-        this.productoService = productoService;
+
+    @GetMapping  // Enlista todos los productos
+    @Operation(summary = "Obtener todos los productos")
+    public ResponseEntity<List<Producto>> listarProductos() {
+        return ResponseEntity.ok(productoService.obtenerTodos());
     }
 
-    @GetMapping
-    @Operation(
-        summary = "Obtener todos los productos",
-        description = "Devuelve una lista de todos los productos disponibles."
-    )
-    public List<Producto> listarProductos() {
-        return productoService.listar();
+
+    @GetMapping("/{id}") // Obtener producto por ID
+    @Operation(summary = "Obtener producto por ID")
+    public ResponseEntity<?> obtenerProducto(@PathVariable Long id) {
+        Producto producto = productoService.obtenerPorId(id);
+
+        if (producto == null) {
+            return ResponseEntity.status(404).body("Producto no encontrado");
+        }
+
+        return ResponseEntity.ok(producto);
     }
 
-    @GetMapping("/{id}")
-    @Operation(
-        summary = "Obtener producto por ID",
-        description = "Busca un producto por su identificador único."
-    )
-    public Producto obtenerProducto(@PathVariable Long id) {
-        return productoService.obtenerPorId(id);
+
+    @GetMapping("/categoria/{categoria}") // Obtener productos por categoría
+    @Operation(summary = "Obtener productos por categoría")
+    public ResponseEntity<List<Producto>> productosPorCategoria(@PathVariable String categoria) {
+        return ResponseEntity.ok(
+                productoService.obtenerTodos()
+                        .stream()
+                        .filter(p -> p.getCategoria().equalsIgnoreCase(categoria))
+                        .toList()
+        );
     }
 
-    @PostMapping
-    @Operation(
-        summary = "Crear un nuevo producto",
-        description = "Registra un nuevo producto en la base de datos."
-    )
-    public Producto crearProducto(@RequestBody Producto producto) {
-        return productoService.crear(producto);
+
+    @PostMapping // Crear nuevo producto
+    @Operation(summary = "Crear un nuevo producto")
+    public ResponseEntity<Producto> crearProducto(@RequestBody Producto producto) {
+        return ResponseEntity.ok(productoService.crear(producto));
     }
 
-    @PutMapping("/{id}")
-    @Operation(
-        summary = "Actualizar un producto existente",
-        description = "Modifica los detalles de un producto usando su ID."
-    )
-    public Producto actualizarProducto(
+
+    @PutMapping("/{id}") // Actualizar producto existente
+    @Operation(summary = "Actualizar un producto existente")
+    public ResponseEntity<?> actualizarProducto(
             @PathVariable Long id,
-            @RequestBody Producto producto) {
-        return productoService.actualizar(id, producto);
+            @RequestBody Producto producto
+    ) {
+        Producto actualizado = productoService.actualizar(id, producto);
+
+        if (actualizado == null) {
+            return ResponseEntity.status(404).body("Producto no encontrado");
+        }
+
+        return ResponseEntity.ok(actualizado);
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(
-        summary = "Eliminar un producto",
-        description = "Elimina un producto de la base de datos por su ID."
-    )
-    public void eliminarProducto(@PathVariable Long id) {
+    @DeleteMapping("/{id}") // Eliminar producto por ID
+    @Operation(summary = "Eliminar un producto")
+    public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
+
+        Producto existe = productoService.obtenerPorId(id);
+        if (existe == null) {
+            return ResponseEntity.status(404).body("Producto no encontrado");
+        }
+
         productoService.eliminar(id);
+        return ResponseEntity.ok("Producto eliminado correctamente");
     }
 }
