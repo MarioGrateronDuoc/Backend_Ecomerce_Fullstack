@@ -3,7 +3,7 @@ package com.example.Productos.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // <-- IMPORTANTE
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,7 +26,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // --- PERMITIR SWAGGER ---
+                // --- SWAGGER ---
                 .requestMatchers(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
@@ -36,13 +36,13 @@ public class SecurityConfig {
                         "/webjars/**"
                 ).permitAll()
 
-                // --- RUTAS PÚBLICAS ---
+                // --- PÚBLICOS ---
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
 
-                // --- CRUD SOLO ADMIN ---
-                .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
+                // --- SOLO ADMIN ---
+                .requestMatchers(HttpMethod.POST, "/api/productos/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasAuthority("ADMIN")
 
                 .anyRequest().authenticated()
         );
