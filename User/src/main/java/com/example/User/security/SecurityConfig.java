@@ -9,7 +9,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -29,28 +28,32 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
 
-                // ✅ RUTAS PÚBLICAS
+                // ⭐ Rutas públicas
                 .requestMatchers(
-                        new AntPathRequestMatcher("/public/**"),
-                        new AntPathRequestMatcher("/swagger-ui.html"),
-                        new AntPathRequestMatcher("/swagger-ui/**"),
-                        new AntPathRequestMatcher("/v3/api-docs/**"),
-                        new AntPathRequestMatcher("/actuator/health"),
-                        new AntPathRequestMatcher("/api/usuarios"),
-                        new AntPathRequestMatcher("/api/usuarios/public/**"),
-                        new AntPathRequestMatcher("/api/usuarios/email/**")
+                        "/api/usuarios/public/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/actuator/health"
                 ).permitAll()
 
-                // 🔐 Rutas de admin
-                .requestMatchers(
-                        new AntPathRequestMatcher("/api/admin/**")
-                ).hasRole("ADMIN")
+                // ⭐ Registrar usuario (POST) debe ser público
+                .requestMatchers("/api/usuarios", "/api/usuarios/").permitAll()
 
-                // 🔐 Todo lo demás requiere JWT
+                // ⭐ Obtener usuario por email puede ser público (lo usa AUTH)
+                .requestMatchers("/api/usuarios/email/**").permitAll()
+
+                // ⭐ EL RESTO DE /api/usuarios/** REQUIERE AUTENTICACIÓN
+                .requestMatchers("/api/usuarios/**").authenticated()
+
+                // ⭐ Rutas admin (si las hubiera)
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                // ⭐ Cualquier otra ruta requiere autenticación
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
