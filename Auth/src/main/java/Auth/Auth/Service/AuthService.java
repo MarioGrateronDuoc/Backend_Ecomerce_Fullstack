@@ -24,24 +24,25 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
-        // 1. Buscar usuario en el microservicio User
+        // 1️⃣ Buscar usuario en el microservicio User
         UsuarioDTO user = userClient.getUserByEmail(request.getEmail());
         if (user == null) {
             throw new RuntimeException("Usuario no encontrado");
         }
 
-        // 2. Validar contraseña
+        // 2️⃣ Validar contraseña BCRYPT (antes estaba mal)
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
-        // 3. Generar token JWT
+        // 3️⃣ Generar token JWT con email + ID + roles
         String token = jwtUtil.generateToken(
                 user.getEmail(),
                 user.getId(),
-                List.of(user.getRol())
+                List.of(user.getRol())  // se envía como ["ADMIN"] o ["USER"]
         );
 
-        return new LoginResponse(token);
+        // 4️⃣ Respuesta completa (tu clase LoginResponse debe aceptar esto)
+        return new LoginResponse(token, user.getNombre(), List.of(user.getRol()));
     }
 }
