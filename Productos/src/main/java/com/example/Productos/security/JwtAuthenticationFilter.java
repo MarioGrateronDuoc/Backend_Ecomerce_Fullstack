@@ -4,6 +4,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,6 +16,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 
@@ -22,7 +27,9 @@ import java.util.stream.Collectors;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    // ⚠️ IMPORTANTE: pon aquí el MISMO secret que usas en tu microservicio Auth
+    private final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+    // ⚠️ IMPORTANTE: Debe ser exactamente igual al SECRET del microservicio Auth
     private final String SECRET = "MI_CLAVE_SECRETA_DE_32_CARACTERES_MINIMO_____123";
 
     @Override
@@ -32,46 +39,58 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        logger.info("➡️ [FILTER] Endpoint recibido: {} {}", request.getMethod(), request.getRequestURI());
+
         String token = obtenerToken(request);
 
-        if (token != null) {
-            try {
-                // Si usas jjwt 0.11.5 esto es la forma recomendada:
-                Claims claims = Jwts.parser()
-                        .setSigningKey(SECRET.getBytes())
-                        .parseClaimsJws(token)
-                        .getBody();
+        if (token == null) {
+            logger.warn("❌ No se encontró token en Authorization header");
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-                String email = claims.getSubject();
+        logger.info("🔑 Token recibido: {}", token);
 
-                // Convertimos el claim "roles" en List<String> de forma segura
-                List<String> roles = ((List<?>) claims.get("roles"))
-                        .stream()
-                        .map(Object::toString)
-                        .collect(Collectors.toList());
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(SECRET.getBytes())
+                    .parseClaimsJws(token)
+                    .getBody();
 
-                // Creamos la lista de autoridades que Spring Security entiende
-                List<GrantedAuthority> authorities = roles.stream()
-                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
-                        .collect(Collectors.toList());
+            logger.info("✔️ Token validado correctamente");
 
-                // Token de autenticación para el contexto de Spring Security
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                email,
-                                null,
-                                authorities
-                        );
+            String email = claims.getSubject();
+            List<String> roles = ((List<?>) claims.get("roles"))
+                    .stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+            logger.info("👤 Usuario del token (subject): {}", email);
+            logger.info("🎭 Roles extraídos del token: {}", roles);
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            List<GrantedAuthority> authorities = roles.stream()
+                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
+                    .collect(Collectors.toList());
 
-            } catch (Exception e) {
-                System.out.println("Token inválido o expirado: " + e.getMessage());
-            }
+            logger.info("🔐 Authorities generadas para Spring: {}", authorities);
+
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            null,
+                            authorities
+                    );
+
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            logger.info("📌 SecurityContext actualizado. Usuario autenticado.");
+
+        } catch (Exception e) {
+            logger.error("❌ ERROR VALIDANDO TOKEN: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
