@@ -22,21 +22,32 @@ public class JwtUtil {
         if (secret == null || secret.length() < 32) {
             throw new IllegalArgumentException("JWT secret must be at least 32 characters long.");
         }
+
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         this.expirationMs = expirationMs;
     }
 
-    // Validar token
+    // -------------------------------
+    // VALIDAR TOKEN
+    // -------------------------------
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+
             return true;
+
         } catch (JwtException | IllegalArgumentException e) {
+            System.out.println("JWT inválido: " + e.getMessage());
             return false;
         }
     }
 
-    // Obtener claims del token
+    // -------------------------------
+    // OBTENER CLAIMS DEL TOKEN
+    // -------------------------------
     public Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -45,13 +56,18 @@ public class JwtUtil {
                 .getBody();
     }
 
-    // (Opcional si User genera tokens, pero no obligatorio)
-    public String generateToken(String username, List<String> roles, String userId) {
+    // -------------------------------
+    // GENERAR TOKEN (NO USADO EN USER, PERO QUEDA BIEN)
+    // -------------------------------
+    public String generateToken(String email, Long userId, List<String> roles) {
+
         long now = System.currentTimeMillis();
+
         return Jwts.builder()
-                .setSubject(username)
-                .claim("roles", roles)
-                .claim("userId", userId)
+                .claim("email", email)
+                .claim("userId", userId)       // 🔥 LONG, NO STRING
+                .claim("roles", roles)         // ["ADMIN"] o ["USER"]
+                .setSubject(email)
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(now + expirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
