@@ -24,50 +24,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
-    // 🔴 Rutas que NO queremos filtrar con JWT
+    // 🔴 Rutas que NO pasan por el filtro
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // Log opcional para ver qué ruta está entrando
-        System.out.println("shouldNotFilter? path=" + path + " method=" + method);
-
-        // Swagger, health
         if (path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/actuator/health")) {
             return true;
         }
 
-        // Registro de usuario → solo POST es público
-        if (path.equals("/api/usuarios") && "POST".equalsIgnoreCase(method)) {
+        // Registro
+        if (path.equals("/api/usuarios") && method.equalsIgnoreCase("POST")) {
             return true;
         }
 
-        // Búsqueda por email (usada por Auth)
+        // Consultar usuario por email (lo usa AUTH)
         if (path.startsWith("/api/usuarios/email")) {
             return true;
         }
 
-        // ⚡ TU ENDPOINT DE PRUEBA PUBLICO
-        // Permitir /api/usuarios/public/**
+        // Rutas públicas
         if (path.startsWith("/api/usuarios/public")) {
             return true;
         }
 
-        return false; // el resto SÍ pasa por el filtro
+        return false;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // Si no hay token → dejar seguir; SecurityConfig decide si permite o no
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -77,19 +72,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             if (jwtUtil.validateToken(token)) {
+
                 Claims claims = jwtUtil.getClaims(token);
 
-                String username = claims.getSubject();
-                List<String> roles = claims.get("roles", List.class);
-                String userId = claims.get("userId", String.class);
+                String email = claims.get("email", String.class);
 
+                // 🔥 userId es LONG, no String
+                Long userId = claims.get("userId", Long.class);
+
+                List<String> roles = claims.get("roles", List.class);
+
+                // 🔥 Asegurar formato ROLE_XXX
                 List<SimpleGrantedAuthority> authorities =
                         roles.stream()
-                                .map(SimpleGrantedAuthority::new)
+                                .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                                 .collect(Collectors.toList());
 
                 AuthenticatedUserPrincipal principal =
-                        new AuthenticatedUserPrincipal(username, userId, roles);
+                        new AuthenticatedUserPrincipal(email, String.valueOf(userId), roles);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -104,7 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Token inválido → devolver 401 automáticamente
+            System.out.println("JWT ERROR: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
