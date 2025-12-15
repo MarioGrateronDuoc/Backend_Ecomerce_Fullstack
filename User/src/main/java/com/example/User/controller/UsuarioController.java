@@ -48,7 +48,6 @@ public class UsuarioController {
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Obtener usuario por email (ADMIN)")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Usuario> obtenerPorEmail(@PathVariable String email) {
         return ResponseEntity.ok(usuarioService.buscarPorEmail(email));
     }
