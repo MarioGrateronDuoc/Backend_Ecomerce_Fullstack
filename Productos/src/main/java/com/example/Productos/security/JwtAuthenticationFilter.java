@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         logger.info("➡️ [FILTER] Endpoint recibido: {} {}", request.getMethod(), request.getRequestURI());
 
-        String token = obtenerToken(request);
+        String token = obtenerToken(request); //Esto lo que me permite es extraer el token del header Authorization
 
         if (token == null) {
             logger.warn("❌ No se encontró token en Authorization header");
@@ -49,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        logger.info("🔑 Token recibido: {}", token);
+        logger.info("🔑 Token recibido: {}", token); //If que me dice si el token fue encontrado y aceptado
 
         try {
             Claims claims = Jwts.parser()
@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
 
-            logger.info("✔️ Token validado correctamente");
+            logger.info("✔️ Token validado correctamente"); // Me valida el token
 
             String email = claims.getSubject();
             List<String> roles = ((List<?>) claims.get("roles"))
@@ -66,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .collect(Collectors.toList());
 
             logger.info("👤 Usuario del token (subject): {}", email);
-            logger.info("🎭 Roles extraídos del token: {}", roles);
+            logger.info("🎭 Roles extraídos del token: {}", roles); //Esto es una extraccion de los datos del usuario del token obtengo el email y el rol
 
             List<GrantedAuthority> authorities = roles.stream()
                     .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
@@ -85,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     new WebAuthenticationDetailsSource().buildDetails(request)
             );
 
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            SecurityContextHolder.getContext().setAuthentication(authToken); //Autentica al usuario
 
             logger.info("📌 SecurityContext actualizado. Usuario autenticado.");
 

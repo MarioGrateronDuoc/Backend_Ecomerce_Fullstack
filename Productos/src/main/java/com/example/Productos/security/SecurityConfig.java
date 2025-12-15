@@ -28,7 +28,7 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable());
 
         http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Esto hace que cada peticion de independiente
         );
 
         http.authorizeHttpRequests(auth -> auth
@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
         );
 
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Intercepta cada petición para validar el JWT
 
         logger.info("✔️ SecurityFilterChain creado correctamente");
 
