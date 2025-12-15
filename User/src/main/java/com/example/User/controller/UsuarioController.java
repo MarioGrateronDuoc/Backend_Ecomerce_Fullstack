@@ -87,6 +87,16 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/admin")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Crear usuario como ADMIN")
+    public ResponseEntity<Usuario> crearUsuarioComoAdmin(
+            @RequestBody Usuario usuario
+    ) {
+        Usuario creado = usuarioService.registrar(usuario);
+        return ResponseEntity.ok(creado);
+    }
+
 
 
     @GetMapping("/public/ping")
