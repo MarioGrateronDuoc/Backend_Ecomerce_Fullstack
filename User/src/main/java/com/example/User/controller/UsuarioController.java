@@ -27,11 +27,10 @@ public class UsuarioController {
 
     @GetMapping
     @Operation(summary = "Listar todos los usuarios (ADMIN)")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Usuario>> listar() {
         return ResponseEntity.ok(usuarioService.listarUsuarios());
     }
-
 
 
     @GetMapping("/{id}")
@@ -43,33 +42,28 @@ public class UsuarioController {
         if (!puedeAcceder(id, auth)) {
             return ResponseEntity.status(403).build();
         }
-
         return ResponseEntity.ok(usuarioService.buscarPorId(id));
     }
 
+
     @GetMapping("/email/{email}")
     @Operation(summary = "Obtener usuario por email (ADMIN)")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Usuario> obtenerPorEmail(@PathVariable String email) {
         return ResponseEntity.ok(usuarioService.buscarPorEmail(email));
     }
 
 
-
     @PostMapping
-    @Operation(
-            summary = "Registrar nuevo usuario",
-            description = "Crea un nuevo usuario con nombre, email, contraseña y rol"
-    )
+    @Operation(summary = "Registrar nuevo usuario")
     public ResponseEntity<Usuario> registrar(@RequestBody Usuario usuario) {
         Usuario creado = usuarioService.registrar(usuario);
         return ResponseEntity.ok(creado);
     }
 
-
-
     @PutMapping("/{id}/rol")
     @Operation(summary = "Cambiar rol de usuario (ADMIN)")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Usuario> cambiarRol(
             @PathVariable Long id,
             @RequestBody Usuario usuario
@@ -78,26 +72,24 @@ public class UsuarioController {
         return ResponseEntity.ok(actualizado);
     }
 
-
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar usuario (ADMIN)")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         usuarioService.eliminarUsuario(id);
         return ResponseEntity.noContent().build();
     }
 
+
     @PostMapping("/admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear usuario como ADMIN")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Usuario> crearUsuarioComoAdmin(
             @RequestBody Usuario usuario
     ) {
         Usuario creado = usuarioService.registrar(usuario);
         return ResponseEntity.ok(creado);
     }
-
-
 
     @GetMapping("/public/ping")
     public String ping() {
