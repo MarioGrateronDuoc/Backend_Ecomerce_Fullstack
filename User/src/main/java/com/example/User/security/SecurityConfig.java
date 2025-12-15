@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/email/**").permitAll()
 
                 // ADMIN CREA USUARIOS
-                .requestMatchers(HttpMethod.POST, "/api/usuarios/admin").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/usuarios/admin").hasAuthority("ROLE_ADMIN")
 
                 // RESTO DE USUARIOS
                 .requestMatchers("/api/usuarios/**").authenticated()
