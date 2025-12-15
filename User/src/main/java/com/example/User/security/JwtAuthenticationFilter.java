@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -24,7 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
-    // 🔴 Rutas que NO pasan por el filtro
+    // 🔓 Rutas que NO pasan por el filtro
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
 
@@ -59,10 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
+        // 🔓 Si no hay token → continuar
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -76,20 +79,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.getClaims(token);
 
                 String email = claims.get("email", String.class);
-
-                // 🔥 userId es LONG, no String
                 Long userId = claims.get("userId", Long.class);
-
                 List<String> roles = claims.get("roles", List.class);
 
-                // 🔥 Asegurar formato ROLE_XXX
                 List<SimpleGrantedAuthority> authorities =
                         roles.stream()
                                 .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                                 .collect(Collectors.toList());
 
                 AuthenticatedUserPrincipal principal =
-                        new AuthenticatedUserPrincipal(email, String.valueOf(userId), roles);
+                        new AuthenticatedUserPrincipal(
+                                email,
+                                String.valueOf(userId),
+                                roles
+                        );
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -101,11 +104,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
-            filterChain.doFilter(request, response);
-
         } catch (Exception e) {
+            // ❗ NO cortar la request
             System.out.println("JWT ERROR: " + e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            SecurityContextHolder.clearContext();
         }
+
+        // ✅ SIEMPRE continuar
+        filterChain.doFilter(request, response);
     }
 }
