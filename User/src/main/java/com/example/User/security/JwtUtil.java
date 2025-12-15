@@ -1,8 +1,10 @@
 package com.example.User.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -12,19 +14,16 @@ import java.util.List;
 @Component
 public class JwtUtil {
 
+    // 🔥 MISMO SECRET QUE AUTH (EXACTAMENTE IGUAL)
+    private static final String SECRET_KEY =
+            "MI_CLAVE_SECRETA_DE_32_CARACTERES_MINIMO_____123";
+
+    private static final long EXPIRATION_MS = 1000 * 60 * 60 * 24; // 24h
+
     private final Key key;
-    private final long expirationMs;
 
-    public JwtUtil(
-            @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expiration-ms}") long expirationMs
-    ) {
-        if (secret == null || secret.length() < 32) {
-            throw new IllegalArgumentException("JWT secret must be at least 32 characters long.");
-        }
-
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        this.expirationMs = expirationMs;
+    public JwtUtil() {
+        this.key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
     // -------------------------------
@@ -36,17 +35,15 @@ public class JwtUtil {
                     .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token);
-
             return true;
-
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (JwtException e) {
             System.out.println("JWT inválido: " + e.getMessage());
             return false;
         }
     }
 
     // -------------------------------
-    // OBTENER CLAIMS DEL TOKEN
+    // OBTENER CLAIMS
     // -------------------------------
     public Claims getClaims(String token) {
         return Jwts.parserBuilder()
@@ -57,7 +54,7 @@ public class JwtUtil {
     }
 
     // -------------------------------
-    // GENERAR TOKEN (NO USADO EN USER, PERO QUEDA BIEN)
+    // (Opcional) Generar token
     // -------------------------------
     public String generateToken(String email, Long userId, List<String> roles) {
 
@@ -65,11 +62,11 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .claim("email", email)
-                .claim("userId", userId)       // 🔥 LONG, NO STRING
-                .claim("roles", roles)         // ["ADMIN"] o ["USER"]
+                .claim("userId", userId)
+                .claim("roles", roles)
                 .setSubject(email)
                 .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + expirationMs))
+                .setExpiration(new Date(now + EXPIRATION_MS))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
