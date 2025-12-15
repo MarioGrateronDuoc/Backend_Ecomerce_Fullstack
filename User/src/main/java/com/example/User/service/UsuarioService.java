@@ -1,10 +1,9 @@
 package com.example.User.service;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.example.User.model.Usuario;
 import com.example.User.repository.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -21,19 +20,18 @@ public class UsuarioService {
     }
 
 
+
     public Usuario registrar(Usuario usuario) {
 
-        // Email único
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new RuntimeException("El email ya está registrado.");
         }
 
-        // Encriptar contraseña
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
 
-        // Rol por defecto si no lo envía
+        // Rol por defecto
         if (usuario.getRol() == null || usuario.getRol().isEmpty()) {
-            usuario.setRol("ROLE_USER");
+            usuario.setRol("USER");
         }
 
         return usuarioRepository.save(usuario);
@@ -45,14 +43,35 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 
+    public Usuario buscarPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
 
     public List<Usuario> listarUsuarios() {
         return usuarioRepository.findAll();
     }
 
 
-    public Usuario buscarPorId(Long id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public Usuario cambiarRol(Long id, String nuevoRol) {
+
+        Usuario usuario = buscarPorId(id);
+
+        if (!nuevoRol.equals("USER") && !nuevoRol.equals("ADMIN")) {
+            throw new RuntimeException("Rol inválido");
+        }
+
+        usuario.setRol(nuevoRol);
+        return usuarioRepository.save(usuario);
+    }
+
+
+    public void eliminarUsuario(Long id) {
+
+        if (!usuarioRepository.existsById(id)) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        usuarioRepository.deleteById(id);
     }
 }
